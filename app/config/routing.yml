@@ -1,0 +1,39 @@
+app:
+    resource: "@AppBundle/Controller/"
+    type:     annotation
+
+fos_user:
+    resource: "@FOSUserBundle/Resources/config/routing/all.xml"
+  
+index:
+    path:   /
+    defaults:  { _controller: AppBundle:Lucky:number }
+
+campus-maps:
+  path:   /campus-maps
+  defaults:  { _controller: AppBundle:Lucky:number }
+  
+json_login:
+    path:   /json/login
+    defaults:  { _controller: AppBundle:Login:jsonLogin }
+
+json_failure:
+    path:   /json/login_failure
+    defaults:  { _controller: AppBundle:Login:jsonLoginFailure }
+
+json_token:
+  path:     /json/token
+  defaults:  { _controller: AppBundle:Login:jsonToken }
+
+json_spaces:
+  path:   /json/spaces
+  defaults:  { _controller: AppBundle:Spaces:jsonSpaces }
+
+json_study_groups:
+  path:   /json/study_groups
+  defaults:  { _controller: AppBundle:StudyGroups:jsonStudyGroups }
+
+json_study_group:
+  path: /json/study_group/create
+  defaults: { _controller: AppBundle:StudyGroups:jsonStudyGroupCreate }
+  methods:  [POST]
