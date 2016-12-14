@@ -1,0 +1,286 @@
+<!doctype html>
+<html>
+<head>
+	<style type="text/css">
+		.hidden {
+			display: none;
+		}
+
+		.groupForm {
+			height: 50%;
+			width: 50%;
+			z-index: 99;
+			position: absolute;
+			background: grey;
+			margin-top: 15%;
+			margin-left: 25%;
+			opacity: 0.9;
+		}
+
+		#searchForm {
+			height: 50%;
+			width: 50%;
+			z-index: 99;
+			position: absolute;
+			background: grey;
+			margin-top: 15%;
+			margin-left: 25%;
+			opacity: 0.9;
+		}
+
+	
+
+		#addButton {
+		    position: absolute;
+		    bottom: 20px;
+		    left: 3%;
+		    border-radius: 5px;
+		    background: yellow;
+		    height: 60px;
+		    width: 60px;
+			z-index: 99;
+			opacity: 0.9;
+		}
+
+		#searchButton {
+		    position: absolute;
+		    bottom: 100px;
+		    left: 3%;
+		    border-radius: 5px;
+		    background: yellow;
+		    height: 60px;
+		    width: 60px;
+			z-index: 99;
+			opacity: 0.9;
+		}
+
+	</style>
+	<script type="text/javascript" src="js/jquery-3.1.1.min.js"></script></body>
+
+	<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCNtyc5KDBxiM_rn-SsbWGvHz45jcf_a4Y&callback=initialize"
+    async defer></script>
+	<script>
+		var spaceMarkers = [],
+			groupMarkers = [];
+
+		function initFormSaving () {
+			$('.groupForm').on('submit', function(evt) {
+				evt.preventDefault();
+
+				var form = $(this),
+					inputs = form.find('input[type!=submit]'),
+					postData = {},
+					tempInput;
+
+				$.each(inputs, function (key, input) {
+					tempInput = $(input);
+
+					postData[tempInput.attr('name')] = tempInput.val();
+				});
+
+				$.ajax({
+	  				url: 'http://138.197.29.46/app_dev.php/json/study_group/create',
+	  				method: 'POST',
+	  				data: postData,
+	  				success: function (data) {
+
+					}
+	  			});
+			});
+
+			$('#searchForm').on('submit', function (evt) {
+				evt.preventDefault();
+
+				var title = $('input[name=search_title]').val();
+
+				loadGroupMarkers(title);
+			});
+
+			$('#addButton').on('click', function () {
+				$('.groupForm').toggleClass('hidden');
+			});
+
+			$('#searchButton').on('click', function () {
+				$('#searchForm').toggleClass('hidden');
+			})
+		}
+
+		initFormSaving();
+
+		function loadGroupMarkers (searchTitle) {
+			$.ajax({
+  				url: 'http://138.197.29.46/app_dev.php/json/study_groups',
+  				data: {
+  					title: searchTitle
+  				},
+  				success: function (data) {
+  					$.each(groupMarkers, function (key, marker) {
+  						marker.setMap(null);
+
+  					});
+
+  					$.each(spaceMarkers, function (key, marker) {
+  						marker.setMap(null);
+  					});
+
+  					groupMarkers = [];
+
+  					$.each(data.data, function (key, item){
+
+  						var infoWindowContent = [
+  							'<p>' , item.title , '</p>',
+  							'<p>' , item.date_created.date , '</p>',
+  							'<p>' , item.indoor , '</p>',
+  							'<p>' , item.outdoor , '</p>',
+  							'<p>' , item.limit_cap , '</p>',
+
+  						].join('');
+
+
+
+  						var infowindow = new google.maps.InfoWindow({
+		  					content: infoWindowContent
+		  				});
+
+		  				if(item.lat && item.lng) {
+		  					var marker = new google.maps.Marker({
+		          				position: {
+		          					lat: item.lat,
+		          					lng: item.lng
+		          				},
+		          				map: window.map,
+		          				title: item.title,
+		          				info: infoWindowContent,
+								labelClass: "label"
+
+		        			});
+
+				  			marker.addListener('click', function(){
+				  				infowindow.open(window.map, marker);
+				  			});
+				  			groupMarkers.push(marker)
+		  				}
+
+  						return;
+  					})
+
+  				}
+  			});
+		}
+
+		function loadMapMarkers (searchTitle) {
+			$.ajax({
+  				url: 'http://138.197.29.46/app_dev.php/json/spaces',
+  				data: {
+  					title: searchTitle
+  				},
+  				success: function (data) {
+  					$.each(spaceMarkers, function (key, marker) {
+  						marker.setMap(null);
+  					});
+
+  					$.each(data.data, function (key, item){
+
+  						var infoWindowContent = [
+  							'<p>' , item.name , '</p>',
+  							'<p>' , item.description , '<p/>',
+  							'<p>' , item.address , '</p>',
+  							'<p>' , item.url , '</p>'
+  						].join('');
+
+
+
+  						var infowindow = new google.maps.InfoWindow({
+		  					content: infoWindowContent
+		  				});
+
+  						var marker = new google.maps.Marker({
+	          				position: item.position,
+	          				map: window.map,
+	          				title: item.name,
+	          				info: infoWindowContent,
+							labelClass: "label"
+
+	        			});
+
+			  			marker.addListener('click', function(){
+			  				infowindow.open(window.map, marker);
+			  			});
+
+			  			spaceMarkers.push(marker);
+
+  						return;
+  					})
+
+  					initFormSaving()
+  				}
+  			});
+		}
+
+		function initialize(){
+			$('input[name=geoLo]').on('change', function (evt) {
+				var input = $(this),
+					form = $('.groupForm'),
+					lat = form.find('input[type=hidden][name=lat]'),
+					lng = form.find('input[type=hidden][name=lng]');
+
+				if (input.is(':checked')) {
+					if (navigator.geolocation) {
+					    navigator.geolocation.getCurrentPosition(function (position) {
+					    	if (lat.length) {
+					    		lat.val(position.coord.latitude);
+					    	} else {
+					    		form.append('<input value="'+position.coords.latitude+'" type="hidden" name="lat">');
+					    	}
+
+					    	if (lng.length) {
+					    		lng.val(position.coords.longitude);
+					    	} else {
+					    		form.append('<input value="'+position.coords.longitude+'" type="hidden" name="lng">');
+					    	}
+					    });
+					} else {
+					    alert('It seems like Geolocation, which is required for this page, is not enabled in your browser. Please use a browser which supports it.');
+					}
+				}
+			});
+
+			var campus = {lat: 41.333670, lng: -72.948983};
+			var mapOptions = {
+  				zoom: 17,
+  				center: campus
+  				};
+
+  			window.map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+
+  			loadMapMarkers();
+		}
+	</script>
+</head>
+<body>
+	<button id="searchButton"><b>Search Groups</b></button>
+	<button id="addButton"><b>Create A Group</b></button>
+
+	<!--TODO set smaller width-->
+	<div id="map-canvas" style="height: 100%; width: 100%; position: absolute;"></div>
+	<form class="groupForm hidden" action="http://138.197.29.46/app_dev.php/json/study_group/create" method="POST">
+		<span>Group Title</span> <br>
+		<input type="text" name="title"><br>
+		<span>Google API Key</span><br>
+		<input type="text" name="google_api_key"><br> 
+		<span>Select Location</span><br>
+		<label><input type="checkbox" value="1" name="indoor">Indoor</label><br>
+		<label><input type="checkbox" value="1" name="outdoor">Outdoor</label><br>
+		<span>Group Limit</span><br>
+		<input type="text" name="limit_cap"><br>
+		<span>Course ID</span><br>
+		<input type="text" name="course_id"><br>
+		<label for="geoLo"><input id="geoLo" type="checkbox" value="1" name="geoLo">GeoLocation</label><br>
+		<input type="submit" value="Submit">
+	</form>
+	<form class="hidden" id="searchForm">
+		<input type="text" placeholder="Search by full title" name="search_title"><br>
+		<input type="submit" value="Submit">
+	<form>
+	</body>
+</html>
